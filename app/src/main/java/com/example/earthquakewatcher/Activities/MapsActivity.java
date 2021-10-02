@@ -203,7 +203,41 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
 
     @Override
     public void onInfoWindowClick(@NonNull Marker marker) {
-        Toast.makeText(getApplicationContext(), marker.getTitle().toString(), Toast.LENGTH_SHORT).show();
+        getQuakeDetails(marker.getTag().toString());
+        //Toast.makeText(getApplicationContext(), marker.getTitle().toString(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void getQuakeDetails(String url) {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET,
+                url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                String detailsUrl = "";
+                try {
+                    JSONObject properties = response.getJSONObject("properties");
+                    JSONObject products = properties.getJSONObject("products");
+                    JSONArray nearbycities = products.getJSONArray("nearby-cities");
+                    for(int i=0; i<nearbycities.length(); i++){
+                        JSONObject geoserveObj = nearbycities.getJSONObject(i);
+                        JSONObject contentObj = geoserveObj.getJSONObject("contents");
+                        JSONObject geoJsonObj = contentObj.getJSONObject("nearby-cities.json");
+
+                        detailsUrl = geoJsonObj.getString("url");
+
+                    }
+                    Log.d("URL", detailsUrl);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+            }
+        });
+        queue.add(jsonObjectRequest);
     }
 
     @Override
