@@ -8,6 +8,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -38,6 +39,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -62,6 +64,7 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
     private RequestQueue queue;
     private AlertDialog.Builder dialogBuilder;
     private AlertDialog dialog;
+    private BitmapDescriptor[] iconColors;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +77,18 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        iconColors = new BitmapDescriptor[]{
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE),
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN),
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA),
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE),
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN),
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)
+
+        };
 
         queue = Volley.newRequestQueue(this);
 
@@ -109,6 +124,8 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
                                 earthQuake.setPlace(properties.getString("place"));
                                 earthQuake.setType(properties.getString("type"));
                                 earthQuake.setTime(properties.getLong("time"));
+                                earthQuake.setLat(lat);
+                                earthQuake.setLon(lon);
                                 earthQuake.setMagnitude(properties.getDouble("mag"));
                                 earthQuake.setDetailLink(properties.getString("detail"));
 
@@ -117,11 +134,23 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
                                 .getTime());
 
                                 MarkerOptions markerOptions = new MarkerOptions();
-                                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+                                markerOptions.icon(iconColors[Constants.randomInt(iconColors.length, 0)]);
                                 markerOptions.title(earthQuake.getPlace());
                                 markerOptions.position(new LatLng(lat, lon));
                                 markerOptions.snippet("Magnitude: " + earthQuake.getMagnitude() + "\n"
                                 + "Date: " + formattedDate);
+
+                                //Add circle to markers that have magnitude >= x
+                                if(earthQuake.getMagnitude() >= 2.0){
+                                    CircleOptions circleOptions = new CircleOptions();
+                                    circleOptions.center(new LatLng(earthQuake.getLat(), earthQuake.getLon()));
+                                    circleOptions.radius(30000);
+                                    circleOptions.strokeWidth(3.6f);
+                                    circleOptions.fillColor(Color.RED);
+                                    markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+
+                                    mMap.addCircle(circleOptions);
+                                }
 
                                 Marker marker = mMap.addMarker(markerOptions);
                                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lat, lon),1 ));
@@ -263,6 +292,21 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
                 WebView htmlPop = (WebView) view.findViewById(R.id.htmlWebView);
                 StringBuilder stringBuilder = new StringBuilder();
 
+                try{
+                    if(response.has("tectonicSummary") && response.getString("tectonicSummary") != null){
+                        JSONObject tectonic  = response.getJSONObject("tectonicSummary");
+
+                        if (tectonic.has("text") && tectonic.getString("text") != null) {
+
+                            String text = tectonic.getString("text");
+
+                            htmlPop.loadDataWithBaseURL(null, text, "text/html", "UTF-8", null);
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
                 JSONArray cities = null;
                 try {
                     cities = new JSONArray(response);
@@ -277,6 +321,19 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
                     }
                     popList.setText(stringBuilder);
 
+                    dismissButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            dialog.dismiss();
+                        }
+                    });
+
+                    dismissButtonTop.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            dialog.dismiss();
+                        }
+                    });
                     dialogBuilder.setView(view);
                     dialog = dialogBuilder.create();
                     dialog.show();
