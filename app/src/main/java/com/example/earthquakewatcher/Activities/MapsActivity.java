@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
@@ -65,6 +66,7 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
     private AlertDialog.Builder dialogBuilder;
     private AlertDialog dialog;
     private BitmapDescriptor[] iconColors;
+    private Button showListBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +79,14 @@ GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        showListBtn = (Button) findViewById(R.id.showListBtn);
+        showListBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(MapsActivity.this, QuakesListActivity.class));
+            }
+        });
 
         iconColors = new BitmapDescriptor[]{
                 BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE),
